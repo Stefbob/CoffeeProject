@@ -1,0 +1,11 @@
+version: '3.4'
+
+services:
+  backend:
+    image: ${DOCKER_REGISTRY-}coffee
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+  proxy:
+    image: nginx:mainline

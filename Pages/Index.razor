@@ -1,0 +1,122 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations;
+@using Coffee.Data.Repository
+@inherits LayoutComponentBase
+@inject SQLRpostitory repository
+
+<h3>Список кофе</h3>
+		<div class="container-fluid">
+			<div class="row">
+				
+				<div class="col">
+					<table class="table table-striped">
+						<thead class="table-dark">
+							<tr>
+								<th scope="col">Названия</th>
+								<th scope="col">Температура</th>
+								<th scope="col">Время(сек.)</th>
+								<th scope="col"></th>
+							</tr>
+						</thead>
+						@foreach (var item in CoffeesList)
+						{
+							<tbody>
+								<tr @onclick="(() => SetProductForUpdate(item))">
+									<td>
+										@item.Name
+									</td>
+									<td>
+										@item.Tempurature
+									</td>
+									<td>
+										@item.Time
+									</td>
+									<AuthorizeView>
+										<Authorized>
+											<td>
+												<button class="btn btn-danger" @onclick="(()=> DeleteCoffee(item))">Удалить</button>
+											</td>
+										</Authorized>
+									</AuthorizeView>
+								</tr>
+
+							</tbody>
+						}
+					</table>
+					<AuthorizeView>
+						<Authorized>
+								<div class="row">
+									<div class="col">
+										<input type="text" placeholder="Название кофе" @bind-value="@NewCoffee.Name"/>
+										<input id="ticketNum" placeholder="Температура" type="number" name="ticketNum" min=25 max=90 @bind-value="@NewCoffee.Tempurature"/>
+										<input id="ticketNum" placeholder="Время" type="number" name="ticketNum" min=20 max=180 @bind-value="@NewCoffee.Time"/>
+									</div>
+									<div clss="col">
+										<button class="btn btn-success" @onclick="AddNewCoffee">Добавить</button>
+									</div>
+								</div>
+								<div class="col-5 bg-light m-2 justfily-content-end">
+									<div class="p-3 mb-1 bg-primary text-white-text-center">Обновить кофе</div>
+									<EditForm Model="@UpdateCoffee" Context = "Update">
+										<div class="form-group">
+											<label for="name">Названия кофе</label>
+											<input type="text" placeholder="Название кофе" class="form-control" @bind-value="@UpdateCoffee.Name"/>
+										</div>
+										<div class="form-group">
+											<label for="temp">Температура</label>
+											<input id="ticketNum" placeholder="Температура" class="form-control" type="number" name="ticketNum" min=25 max=90 @bind="@UpdateCoffee.Tempurature"/>
+										</div>
+										<div class="form-group">
+											<label for="time">Время</label>
+											<input id="ticketNum" placeholder="Время" class="form-control" type="number" name="ticketNum" min=20 max=180 @bind="@UpdateCoffee.Time"/>
+										</div>
+										<div class="text-center p-3 mb-3">
+											<button class ="btn btn-info" @onclick="UpdateCoffeeData">Обновить</button>
+										</div>
+									</EditForm>
+								</div>
+						</Authorized>
+					</AuthorizeView>
+				</div>
+			</div>
+		</div>
+
+@code {
+	private List<CoffeeClass> CoffeesList = new List<CoffeeClass>();
+	//<input class="form-contorl" placeholder="Температура"@bind-value="@NewCoffee.Tempurature"/>
+	//<input class="form-contorl" placeholder="Время"@bind-value="@NewCoffee.Time" min="20" max="180/>
+	
+								
+	protected override async void OnInitialized()
+	{
+		await RefreshCoffee();
+	}
+	private async Task RefreshCoffee()
+	{
+		CoffeesList = await repository.GetCoffeesAsync();
+	}
+	public CoffeeClass NewCoffee { get; set; } = new CoffeeClass();
+	public CoffeeClass UpdateCoffee { get; set; } = new CoffeeClass();
+	private async Task AddNewCoffee()
+	{
+		await repository.AddCoffees(NewCoffee);
+		NewCoffee = new CoffeeClass();
+		await RefreshCoffee();
+	}
+	private async Task DeleteCoffee(CoffeeClass coffee)
+	{
+		await repository.DeleteCoffeesAsync(coffee);
+		await RefreshCoffee();
+	}
+	private async Task UpdateCoffeeData()
+	{
+		await repository.UpdateCoffeAsync(UpdateCoffee);
+		await RefreshCoffee();
+	}
+	private async Task SetProductForUpdate(CoffeeClass coffee)
+	{
+		UpdateCoffee = coffee;
+	}
+	
+}
+

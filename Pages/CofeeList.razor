@@ -1,0 +1,92 @@
+﻿@using Coffee.Data.Repository
+@using System.ComponentModel.DataAnnotations;
+@inherits LayoutComponentBase
+@inject SQLRpostitory repository
+@page "/coffee-list"
+
+<h3>Список кофе</h3>
+
+	
+		<div class="container-fluid">
+			<div class="row">
+				
+				<div class="col">
+					<table class="table table-striped">
+						<thead class="table-dark">
+							<tr>
+								<th scope="col">Названия</th>
+								<th scope="col">Температура</th>
+								<th scope="col">Время(сек.)</th>
+								<th scope="col"></th>
+							</tr>
+						</thead>
+						@foreach (var item in CoffeesList)
+						{
+							<tbody>
+								<tr>
+									<td>
+										@item.Name
+									</td>
+									<td>
+										@item.Tempurature
+									</td>
+									<td>
+										@item.Time
+									</td>
+									<AuthorizeView>
+										<Authorized>
+											<td>
+												<button class="btn btn-danger" @onclick="(()=> DeleteCoffee(item))">Удалить</button>
+											</td>
+										</Authorized>
+									</AuthorizeView>
+								</tr>
+
+							</tbody>
+						}
+					</table>
+					<AuthorizeView>
+							<Authorized>
+								<div class="row">
+									<div class="col">
+										<input class="form-contorl" placeholder="Название кофе" @bind-value="@NewCoffee.Name"/>
+										<input class="form-contorl" placeholder="Температура"@bind-value="@NewCoffee.Tempurature"/>
+										<input class="form-contorl" placeholder="Время"@bind-value="@NewCoffee.Time"/>
+									</div>
+									<div clss="col">
+										<button class="btn btn-success" @onclick="AddNewCoffee">Добавить</button>
+									</div>
+								</div>
+						</Authorized>
+					</AuthorizeView>
+				</div>
+			</div>
+		</div>
+
+@code {
+	private List<CoffeeClass> CoffeesList = new List<CoffeeClass>();
+	protected override async void OnInitialized()
+	{
+		await RefreshCoffee();
+	}
+	private async Task RefreshCoffee()
+	{
+		CoffeesList = await repository.GetCoffeesAsync();
+	}
+	[Required]
+	private string newNameCoffee;
+	private double newTempuratureCoffee;
+	private int newTimeCoffee;
+	public CoffeeClass NewCoffee { get; set; } = new CoffeeClass();
+	private async Task AddNewCoffee()
+	{
+		await repository.AddCoffees(NewCoffee);
+		NewCoffee = new CoffeeClass();
+		await RefreshCoffee();
+	}
+	private async Task DeleteCoffee(CoffeeClass coffee)
+	{
+		await repository.DeleteCoffeesAsync(coffee);
+		await RefreshCoffee();
+	}
+}

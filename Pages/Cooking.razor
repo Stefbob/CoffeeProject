@@ -1,0 +1,152 @@
+﻿
+@page "/cook"
+@using System;
+@using System.Diagnostics;
+@using System.Runtime.InteropServices;
+@using Coffee.Data.Repository
+@inject SQLRpostitory repository
+@using static System.Net.Mime.MediaTypeNames;
+<h3>Готовка</h3>
+<AuthorizeView>
+	<Authorized>
+		<div class="container-fluid">
+			<div class="row">
+				<div class="col">
+					<table class="table table-striped">
+						<thead class="table-dark">
+							<tr>
+								<th scope="col">Названия</th>
+								<th scope="col">Температура</th>
+								<th scope="col">Время(сек.)</th>
+								<th scope="col"></th>
+							</tr>
+						</thead>
+						@foreach (var item in CoffeesList)
+						{
+							<tbody>
+								<tr>
+									<td>
+										@item.Name
+									</td>
+									<td>
+										@item.Tempurature
+									</td>
+									<td>
+										@item.Time
+									</td>
+									<td>
+										<button class="btn btn-success" @onclick="(()=> OnClickStartCook(item.Id))">Приготовить</button>
+									</td>
+								</tr>
+
+							</tbody>
+						}
+					</table>
+					<button class="btn btn-danger" @onclick="(()=> OnClickStopCook())">Остановить</button>
+					<p role="status">Текущая температура: @curTemp</p>
+					<p role="status">Время готовки: @curTime /	 @timeToCook</p>
+					<p role="status">Требуемая температура: @tempCoffee</p>
+				</div>
+			</div>
+		</div>
+	</Authorized>
+	<NotAuthorized>
+		Вы не авторизованы! Перейдите по <a href="Identity/Account/Login">ссылке</a>
+	</NotAuthorized>
+</AuthorizeView>
+@code {
+	//<button class="btn btn-success" @onclick="(()=> OnClick(item.Id))">Приготовить</button>
+	private List<CoffeeClass> CoffeesList = new List<CoffeeClass>();
+	string curTemp = "0";
+	string tempCoffee = "0";
+	int curTime = 0;
+	bool writeNow = false;
+	int timeToCook = 0;
+	int tempToCook = 0;
+	int HEATING_TIMER = 0;
+	int HEATING = 0;
+
+	protected override async void OnInitialized()
+	{
+		await RefreshCoffee();
+		await Task.Run(() => StartWork());
+	}
+	private async Task RefreshCoffee()
+	{
+		CoffeesList = await repository.GetCoffeesAsync();
+	}
+
+	private void StartWork()
+	{
+		while(true)
+		{
+			curTemp = PicoExploitation(0);
+
+			InvokeAsync(StateHasChanged);
+			if (HEATING == 1)
+			{
+				tempCoffee = PicoExploitation(1, tempToCook);
+				HEATING_TIMER = 0;
+				HEATING = 2;
+			}
+			Thread.Sleep(100);
+			if (HEATING == 2)
+			{
+				HEATING_TIMER += 100;
+				if (HEATING_TIMER >= timeToCook * 100)
+				{
+					HEATING = -1;
+				}
+				Thread.Sleep(1000);
+				curTime++;
+			}
+			if (HEATING == -1)
+			{
+				tempCoffee = PicoExploitation(1, 0);
+				HEATING_TIMER = 0;
+				HEATING = 0;
+			}
+
+		}
+	}
+
+	private void OnClickStopCook()
+	{
+		curTime = 0;
+		HEATING = -1;  
+	}
+
+	private void OnClickStartCook(int id)
+	{
+		curTime = 0;
+		var coffeeToCook = repository.GetOneCoffeeAsync(id);
+		timeToCook = (int)coffeeToCook.Time;
+		tempToCook = (int)coffeeToCook.Tempurature;
+		HEATING = 1;
+	}
+
+	private string PicoExploitation(int mode, double set_temp = 0) //mode: 0 - read, 1 - write
+	{
+		string fileName = null;
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+		{
+			fileName = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "\\csharp.bat";
+		}
+		else
+		{
+			fileName = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + "/csharp.sh";
+		}
+		
+		ProcessStartInfo start = new ProcessStartInfo
+		{
+			FileName = fileName,
+			Arguments = string.Format("\"{0}\" \"{1}\"", mode, set_temp),
+			UseShellExecute = false,
+			CreateNoWindow = true,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true
+		};
+		using Process process = Process.Start(start);
+		return process.StandardOutput.ReadLine();
+	}
+}

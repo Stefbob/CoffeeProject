@@ -1,0 +1,13 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Mvc.TagHelpers
+<AuthorizeView>
+    <Authorized>
+        <a href="Identity/Account/Manage">Добро пожаловать, @context.User.Identity?.Name!</a>
+        <form method="post" action="Identity/Account/LogOut">
+            <button type="submit" class="nav-link btn btn-link">Выход</button>
+        </form>
+    </Authorized>
+    <NotAuthorized>
+        <a href="Identity/Account/Login">Войти</a>
+    </NotAuthorized>
+</AuthorizeView>
